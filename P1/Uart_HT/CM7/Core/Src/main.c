@@ -55,7 +55,6 @@ typedef struct {
 protocol_frame_t frame;
 
 static uint16_t g_dma_old_pos = 0;
-static volatile uint16_t g_dma_size = 0;
 static volatile uint8_t rx_event_flag = 0;
 static volatile uint8_t ring_read_flag = 0;
 static volatile uint8_t frame_ready_flag = 0;
@@ -455,14 +454,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
 {
-	 rx_event_flag = 1;
-	 g_dma_size= DMA_BUFFER_SIZE / 2;
+	rx_event_flag = 1;
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	rx_event_flag = 1;
-	 g_dma_size= DMA_BUFFER_SIZE;
 }
 
 static void timer_handler(void) {
@@ -627,29 +624,25 @@ static uint8_t Checksum(uint8_t *l_parser_buffer) {
 
 static void Ring_write_handler(void) {
 	uint32_t _t_start = DWT_CYCCNT;
-	uint16_t len, len1, len2;
+	uint16_t dma_new_pos, len, len1, len2;
 	rx_event_flag = 0;
-	//HAL_UART_Transmit(&huart2, "h", 1, 1);
-	if (g_dma_size > g_dma_old_pos) {
-		len = g_dma_size - g_dma_old_pos;
-		Ring_buffer_write(&uart_ring_buffer, &g_dma_buffer[g_dma_old_pos], len);
-	} else {
-		len1 = DMA_BUFFER_SIZE - g_dma_old_pos;
-		Ring_buffer_write(&uart_ring_buffer, &g_dma_buffer[g_dma_old_pos],
-				len1);
 
-		len2 = g_dma_size;
-		if (len2 > 0) {
-			Ring_buffer_write(&uart_ring_buffer, &g_dma_buffer[0], len2);
+	/* Current DMA write position = buffer size - remaining DMA counter */
+	dma_new_pos = DMA_BUFFER_SIZE - (uint16_t)__HAL_DMA_GET_COUNTER(huart1.hdmarx);
+
+	if (dma_new_pos != g_dma_old_pos) {
+		if (dma_new_pos > g_dma_old_pos) {
+			len = dma_new_pos - g_dma_old_pos;
+			Ring_buffer_write(&uart_ring_buffer, &g_dma_buffer[g_dma_old_pos], len);
+		} else {
+			len1 = DMA_BUFFER_SIZE - g_dma_old_pos;
+			Ring_buffer_write(&uart_ring_buffer, &g_dma_buffer[g_dma_old_pos], len1);
+			len2 = dma_new_pos;
+			if (len2 > 0) {
+				Ring_buffer_write(&uart_ring_buffer, &g_dma_buffer[0], len2);
+			}
 		}
-
-	}
-
-	if (g_dma_size == DMA_BUFFER_SIZE) {
-		g_dma_old_pos = 0;
-	} else {
-		g_dma_old_pos = g_dma_size;
-		//	HAL_DMA_XFER_HALFCPLT_CB_ID;
+		g_dma_old_pos = dma_new_pos;
 	}
 
 	ring_read_flag = 1;
