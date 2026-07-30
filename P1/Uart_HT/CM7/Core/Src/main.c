@@ -983,11 +983,11 @@ static void nibp_handler(void) {
 	case 0x03:
 		switch (frame.packet_id) {
 		case 0x80:
-			spo2.handshakestatus = g_parser_buffer[9];
-			if (spo2.handshakestatus == 0x08) {
+			nibp.handshake = g_parser_buffer[9];
+			if (nibp.handshake == 0x08) {
 				//configuration can be done
 			} else {
-				HAL_UART_Transmit_DMA(&huart1, spo2_database[0], 10);
+				HAL_UART_Transmit_DMA(&huart1, nibp_database[0], 10);
 			}
 			break;
 
