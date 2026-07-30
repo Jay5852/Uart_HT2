@@ -69,6 +69,18 @@ static volatile uint32_t rwh_cycles_max  = 0;
 static volatile uint32_t rwh_us_last     = 0;
 static volatile uint32_t rwh_us_max      = 0;
 
+// Ring_read_handler timing results
+static volatile uint32_t rrh_cycles_last = 0;
+static volatile uint32_t rrh_cycles_max  = 0;
+static volatile uint32_t rrh_us_last     = 0;
+static volatile uint32_t rrh_us_max      = 0;
+
+// packet_dispatcher timing results
+static volatile uint32_t pd_cycles_last  = 0;
+static volatile uint32_t pd_cycles_max   = 0;
+static volatile uint32_t pd_us_last      = 0;
+static volatile uint32_t pd_us_max       = 0;
+
 // SPO2 - 10 Byte Command Database
 
 static const uint8_t spo2_database[][10] = { { 0xFA, 0x0A, 0x03, 0x01, 0x01,
@@ -656,6 +668,7 @@ static void Ring_write_handler(void) {
 }
 
 static void Ring_read_handler(void) {
+	uint32_t _t_start = DWT_CYCCNT;
 	uint16_t available_data, length_index;
 	uint8_t fa_found_flag = 0;
 	uint16_t frame_total_len = 0;
@@ -682,10 +695,16 @@ static void Ring_read_handler(void) {
 		if (frame_total_len < 10 || frame_total_len > 28) {
 			uart_ring_buffer.tail = (uart_ring_buffer.tail + 1)
 					% RING_BUFFER_SIZE;
+			rrh_cycles_last = DWT_CYCCNT - _t_start;
+			rrh_us_last = rrh_cycles_last / CPU_FREQ_MHZ;
+			if (rrh_cycles_last > rrh_cycles_max) { rrh_cycles_max = rrh_cycles_last; rrh_us_max = rrh_us_last; }
 			return;
 		}
 
 		if (available_data < frame_total_len) {
+			rrh_cycles_last = DWT_CYCCNT - _t_start;
+			rrh_us_last = rrh_cycles_last / CPU_FREQ_MHZ;
+			if (rrh_cycles_last > rrh_cycles_max) { rrh_cycles_max = rrh_cycles_last; rrh_us_max = rrh_us_last; }
 			return;   // header found, but frame not fully arrived yet — wait
 		}
 
@@ -699,9 +718,17 @@ static void Ring_read_handler(void) {
 
 	}
 
+	rrh_cycles_last = DWT_CYCCNT - _t_start;
+	rrh_us_last     = rrh_cycles_last / CPU_FREQ_MHZ;
+	if (rrh_cycles_last > rrh_cycles_max) {
+		rrh_cycles_max = rrh_cycles_last;
+		rrh_us_max     = rrh_us_last;
+	}
+
 }
 
 static void packet_dispatcher(uint8_t *l_parser_buffer) {
+	uint32_t _t_start = DWT_CYCCNT;
 	frame_ready_flag = 0;
 	frame.parameter_type = l_parser_buffer[2];
 	frame.packet_type = l_parser_buffer[3];
@@ -724,6 +751,13 @@ static void packet_dispatcher(uint8_t *l_parser_buffer) {
 		/* unknown parameter type - ignored intentionally */
 		break;
 
+	}
+
+	pd_cycles_last = DWT_CYCCNT - _t_start;
+	pd_us_last     = pd_cycles_last / CPU_FREQ_MHZ;
+	if (pd_cycles_last > pd_cycles_max) {
+		pd_cycles_max = pd_cycles_last;
+		pd_us_max     = pd_us_last;
 	}
 }
 
