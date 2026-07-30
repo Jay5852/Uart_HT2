@@ -77,12 +77,6 @@ static volatile uint32_t rrh_cycles_max  = 0;
 static volatile uint32_t rrh_us_last     = 0;
 static volatile uint32_t rrh_us_max      = 0;
 
-// packet_dispatcher timing results
-static volatile uint32_t pd_cycles_last  = 0;
-static volatile uint32_t pd_cycles_max   = 0;
-static volatile uint32_t pd_us_last      = 0;
-static volatile uint32_t pd_us_max       = 0;
-
 // total dispatch timing (if-block in main to packet_dispatcher return)
 static volatile uint32_t td_cycles_last  = 0;
 static volatile uint32_t td_cycles_max   = 0;
@@ -745,7 +739,6 @@ static void Ring_read_handler(void) {
 }
 
 static void packet_dispatcher(uint8_t *l_parser_buffer) {
-	uint32_t _t_start = DWT_CYCCNT;
 	frame_ready_flag = 0;
 	frame.parameter_type = l_parser_buffer[2];
 	frame.packet_type = l_parser_buffer[3];
@@ -768,13 +761,6 @@ static void packet_dispatcher(uint8_t *l_parser_buffer) {
 		/* unknown parameter type - ignored intentionally */
 		break;
 
-	}
-
-	pd_cycles_last = DWT_CYCCNT - _t_start;
-	pd_us_last     = pd_cycles_last / CPU_FREQ_MHZ;
-	if (pd_cycles_last > pd_cycles_max) {
-		pd_cycles_max = pd_cycles_last;
-		pd_us_max     = pd_us_last;
 	}
 }
 
