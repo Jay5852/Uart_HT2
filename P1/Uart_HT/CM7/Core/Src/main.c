@@ -66,22 +66,22 @@ static uint8_t g_parser_buffer[64];
 // Ring_write_handler timing results
 static volatile uint32_t rwh_call_count  = 0;
 static volatile uint32_t rrh_call_count  = 0;
-static volatile uint32_t tw_cycles_last  = 0;
-static volatile uint32_t tw_cycles_max   = 0;
-static volatile uint32_t tw_us_last      = 0;
-static volatile uint32_t tw_us_max       = 0;
+static volatile uint32_t rwh_cycles_last = 0;
+static volatile uint32_t rwh_cycles_max  = 0;
+static volatile uint32_t rwh_us_last     = 0;
+static volatile uint32_t rwh_us_max      = 0;
 
 // Ring_read_handler timing results
-static volatile uint32_t tr_cycles_last  = 0;
-static volatile uint32_t tr_cycles_max   = 0;
-static volatile uint32_t tr_us_last      = 0;
-static volatile uint32_t tr_us_max       = 0;
+static volatile uint32_t rrh_cycles_last = 0;
+static volatile uint32_t rrh_cycles_max  = 0;
+static volatile uint32_t rrh_us_last     = 0;
+static volatile uint32_t rrh_us_max      = 0;
 
-// total dispatch timing (if-block in main to packet_dispatcher return)
-static volatile uint32_t td_cycles_last  = 0;
-static volatile uint32_t td_cycles_max   = 0;
-static volatile uint32_t td_us_last      = 0;
-static volatile uint32_t td_us_max       = 0;
+// packet_dispatcher timing results
+static volatile uint32_t pd_cycles_last  = 0;
+static volatile uint32_t pd_cycles_max   = 0;
+static volatile uint32_t pd_us_last      = 0;
+static volatile uint32_t pd_us_max       = 0;
 
 // SPO2 - 10 Byte Command Database
 
@@ -384,35 +384,21 @@ Error_Handler();
 
 		if (rx_event_flag == 1) {
 			//HAL_UART_Transmit(&huart2, "H", 1, 1);
-			uint32_t _tw_start = DWT_CYCCNT;
 			Ring_write_handler();
-			tw_cycles_last = DWT_CYCCNT - _tw_start;
-			tw_us_last     = tw_cycles_last / CPU_FREQ_MHZ;
-			if (tw_cycles_last > tw_cycles_max) {
-				tw_cycles_max = tw_cycles_last;
-				tw_us_max     = tw_us_last;
-			}
 		}
 
 		if (ring_read_flag == 1) {
-			uint32_t _tr_start = DWT_CYCCNT;
 			Ring_read_handler();
-			tr_cycles_last = DWT_CYCCNT - _tr_start;
-			tr_us_last     = tr_cycles_last / CPU_FREQ_MHZ;
-			if (tr_cycles_last > tr_cycles_max) {
-				tr_cycles_max = tr_cycles_last;
-				tr_us_max     = tr_us_last;
-			}
 		}
 
 		if (frame_ready_flag == 1) {
-			uint32_t _td_start = DWT_CYCCNT;
+			uint32_t _pd_start = DWT_CYCCNT;
 			packet_dispatcher(g_parser_buffer);
-			td_cycles_last = DWT_CYCCNT - _td_start;
-			td_us_last     = td_cycles_last / CPU_FREQ_MHZ;
-			if (td_cycles_last > td_cycles_max) {
-				td_cycles_max = td_cycles_last;
-				td_us_max     = td_us_last;
+			pd_cycles_last = DWT_CYCCNT - _pd_start;
+			pd_us_last     = pd_cycles_last / CPU_FREQ_MHZ;
+			if (pd_cycles_last > pd_cycles_max) {
+				pd_cycles_max = pd_cycles_last;
+				pd_us_max     = pd_us_last;
 			}
 		}
 
@@ -658,6 +644,7 @@ static uint8_t Checksum(uint8_t *l_parser_buffer) {
 }
 
 static void Ring_write_handler(void) {
+	uint32_t _t_start = DWT_CYCCNT;
 	rwh_call_count++;
 	uint16_t dma_new_pos, len, len1, len2;
 	rx_event_flag = 0;
@@ -681,6 +668,13 @@ static void Ring_write_handler(void) {
 	}
 
 	ring_read_flag = 1;
+
+	rwh_cycles_last = DWT_CYCCNT - _t_start;
+	rwh_us_last     = rwh_cycles_last / CPU_FREQ_MHZ;
+	if (rwh_cycles_last > rwh_cycles_max) {
+		rwh_cycles_max = rwh_cycles_last;
+		rwh_us_max     = rwh_us_last;
+	}
 }
 
 static void Ring_read_handler(void) {

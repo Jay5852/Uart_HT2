@@ -1,0 +1,16 @@
+../Core/Src/main.c:196:5:main	24
+../Core/Src/main.c:286:6:SystemClock_Config	4
+../Core/Src/main.c:342:6:HAL_UARTEx_RxEventCallback	2
+../Core/Src/main.c:352:6:HAL_UART_RxHalfCpltCallback	1
+../Core/Src/main.c:357:6:HAL_UART_RxCpltCallback	1
+../Core/Src/main.c:362:13:Ring_buffer_init	1
+../Core/Src/main.c:368:17:Ring_buffer_count	2
+../Core/Src/main.c:376:13:Ring_buffer_write	3
+../Core/Src/main.c:391:13:Ring_buffer_read	2
+../Core/Src/main.c:408:16:Checksum	3
+../Core/Src/main.c:432:13:packet_dispatcher	5
+../Core/Src/main.c:460:13:ecg_handler	3
+../Core/Src/main.c:515:13:spo2_handler	10
+../Core/Src/main.c:575:13:nibp_handler	11
+../Core/Src/main.c:646:13:Ring_handler	11
+../Core/Src/main.c:736:6:Error_Handler	1

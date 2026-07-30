@@ -1,0 +1,16 @@
+../Core/Src/main.c:196:5:main	16	static
+../Core/Src/main.c:286:6:SystemClock_Config	120	static
+../Core/Src/main.c:342:6:HAL_UARTEx_RxEventCallback	16	static
+../Core/Src/main.c:352:6:HAL_UART_RxHalfCpltCallback	16	static
+../Core/Src/main.c:357:6:HAL_UART_RxCpltCallback	16	static
+../Core/Src/main.c:362:13:Ring_buffer_init	16	static
+../Core/Src/main.c:368:17:Ring_buffer_count	16	static
+../Core/Src/main.c:376:13:Ring_buffer_write	32	static
+../Core/Src/main.c:391:13:Ring_buffer_read	32	static
+../Core/Src/main.c:408:16:Checksum	24	static
+../Core/Src/main.c:432:13:packet_dispatcher	16	static
+../Core/Src/main.c:460:13:ecg_handler	4	static
+../Core/Src/main.c:515:13:spo2_handler	8	static
+../Core/Src/main.c:575:13:nibp_handler	8	static
+../Core/Src/main.c:646:13:Ring_handler	32	static
+../Core/Src/main.c:736:6:Error_Handler	4	static,ignoring_inline_asm
