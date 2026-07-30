@@ -1,0 +1,14 @@
+# Build output
+CM7/Debug/
+CM4/Debug/
+*.elf
+*.map
+*.list
+*.o
+*.d
+*.su
+*.cyclo
+
+# IDE files
+.settings/
+*.launch
