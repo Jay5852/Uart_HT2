@@ -64,6 +64,7 @@ static uint8_t g_dma_buffer[DMA_BUFFER_SIZE];
 static uint8_t g_parser_buffer[64];
 
 // Ring_write_handler timing results
+static volatile uint32_t rwh_call_count  = 0;
 static volatile uint32_t rwh_cycles_last = 0;
 static volatile uint32_t rwh_cycles_max  = 0;
 static volatile uint32_t rwh_us_last     = 0;
@@ -636,6 +637,7 @@ static uint8_t Checksum(uint8_t *l_parser_buffer) {
 
 static void Ring_write_handler(void) {
 	uint32_t _t_start = DWT_CYCCNT;
+	rwh_call_count++;
 	uint16_t dma_new_pos, len, len1, len2;
 	rx_event_flag = 0;
 
