@@ -28,6 +28,12 @@
 #include "stdio.h"
 #define RING_BUFFER_SIZE 4096
 #define DMA_BUFFER_SIZE 512
+
+// DWT timing
+#define DWT_CYCCNT   (*(volatile uint32_t *)0xE0001004)
+#define DWT_CTRL     (*(volatile uint32_t *)0xE0001000)
+#define DEM_CR       (*(volatile uint32_t *)0xE000EDFC)
+#define CPU_FREQ_MHZ 200U
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,6 +63,12 @@ static volatile uint8_t timer_flag = 0;
 
 static uint8_t g_dma_buffer[DMA_BUFFER_SIZE];
 static uint8_t g_parser_buffer[64];
+
+// Ring_write_handler timing results
+static volatile uint32_t rwh_cycles_last = 0;
+static volatile uint32_t rwh_cycles_max  = 0;
+static volatile uint32_t rwh_us_last     = 0;
+static volatile uint32_t rwh_us_max      = 0;
 
 // SPO2 - 10 Byte Command Database
 
@@ -333,6 +345,11 @@ Error_Handler();
   MX_USART2_UART_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
+  // Enable DWT cycle counter
+  DEM_CR  |= (1 << 24);  // enable trace
+  DWT_CTRL |= (1 << 0);  // enable CYCCNT
+  DWT_CYCCNT = 0;
+
   Ring_buffer_init(&uart_ring_buffer);
   memset(g_dma_buffer, 0, sizeof(g_dma_buffer));
   //HAL_UARTEx_ReceiveToIdle_DMA(&huart1, g_dma_buffer, DMA_BUFFER_SIZE);
@@ -609,6 +626,7 @@ static uint8_t Checksum(uint8_t *l_parser_buffer) {
 }
 
 static void Ring_write_handler(void) {
+	uint32_t _t_start = DWT_CYCCNT;
 	uint16_t len, len1, len2;
 	rx_event_flag = 0;
 	//HAL_UART_Transmit(&huart2, "h", 1, 1);
@@ -635,8 +653,13 @@ static void Ring_write_handler(void) {
 	}
 
 	ring_read_flag = 1;
-//-----------------
 
+	rwh_cycles_last = DWT_CYCCNT - _t_start;
+	rwh_us_last     = rwh_cycles_last / CPU_FREQ_MHZ;
+	if (rwh_cycles_last > rwh_cycles_max) {
+		rwh_cycles_max = rwh_cycles_last;
+		rwh_us_max     = rwh_us_last;
+	}
 }
 
 static void Ring_read_handler(void) {
