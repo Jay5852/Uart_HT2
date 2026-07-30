@@ -65,6 +65,7 @@ static uint8_t g_parser_buffer[64];
 
 // Ring_write_handler timing results
 static volatile uint32_t rwh_call_count  = 0;
+static volatile uint32_t rrh_call_count  = 0;
 static volatile uint32_t rwh_cycles_last = 0;
 static volatile uint32_t rwh_cycles_max  = 0;
 static volatile uint32_t rwh_us_last     = 0;
@@ -671,6 +672,7 @@ static void Ring_write_handler(void) {
 
 static void Ring_read_handler(void) {
 	uint32_t _t_start = DWT_CYCCNT;
+	rrh_call_count++;
 	uint16_t available_data, length_index;
 	uint8_t fa_found_flag = 0;
 	uint16_t frame_total_len = 0;
