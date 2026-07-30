@@ -83,6 +83,12 @@ static volatile uint32_t pd_cycles_max   = 0;
 static volatile uint32_t pd_us_last      = 0;
 static volatile uint32_t pd_us_max       = 0;
 
+// total dispatch timing (if-block in main to packet_dispatcher return)
+static volatile uint32_t td_cycles_last  = 0;
+static volatile uint32_t td_cycles_max   = 0;
+static volatile uint32_t td_us_last      = 0;
+static volatile uint32_t td_us_max       = 0;
+
 // SPO2 - 10 Byte Command Database
 
 static const uint8_t spo2_database[][10] = { { 0xFA, 0x0A, 0x03, 0x01, 0x01,
@@ -392,7 +398,14 @@ Error_Handler();
 		}
 
 		if (frame_ready_flag == 1) {
+			uint32_t _td_start = DWT_CYCCNT;
 			packet_dispatcher(g_parser_buffer);
+			td_cycles_last = DWT_CYCCNT - _td_start;
+			td_us_last     = td_cycles_last / CPU_FREQ_MHZ;
+			if (td_cycles_last > td_cycles_max) {
+				td_cycles_max = td_cycles_last;
+				td_us_max     = td_us_last;
+			}
 		}
 
 		/* USER CODE END WHILE */
@@ -507,8 +520,8 @@ void Display_spo2_success(void) {
 	int len;
 
 	// Always show the actual measured values first
-	len = snprintf(buf, sizeof(buf), "SpO2: %u%%  PR: %u bpm  PI: %u\r\n",
-			(unsigned)spo2.spo2, (unsigned)spo2.PR, (unsigned)spo2.PI);
+	len = snprintf(buf, sizeof(buf), "SpO2: %d%%  PR: %d bpm  PI: %d\r\n",
+			spo2.spo2, spo2.PR, spo2.PI);
 	HAL_UART_Transmit(&huart2, (uint8_t*) buf, len, 50);
 
 	// Then show only the highest-priority soft warning, if any
