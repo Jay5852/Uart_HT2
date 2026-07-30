@@ -507,8 +507,8 @@ void Display_spo2_success(void) {
 	int len;
 
 	// Always show the actual measured values first
-	len = snprintf(buf, sizeof(buf), "SpO2: %d%%  PR: %d bpm  PI: %d\r\n",
-			spo2.spo2, spo2.PR, spo2.PI);
+	len = snprintf(buf, sizeof(buf), "SpO2: %u%%  PR: %u bpm  PI: %u\r\n",
+			(unsigned)spo2.spo2, (unsigned)spo2.PR, (unsigned)spo2.PI);
 	HAL_UART_Transmit(&huart2, (uint8_t*) buf, len, 50);
 
 	// Then show only the highest-priority soft warning, if any
