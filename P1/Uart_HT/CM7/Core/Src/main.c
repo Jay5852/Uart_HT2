@@ -66,10 +66,10 @@ static uint8_t g_parser_buffer[64];
 // Ring_write_handler timing results
 static volatile uint32_t rwh_call_count  = 0;
 static volatile uint32_t rrh_call_count  = 0;
-static volatile uint32_t rwh_cycles_last = 0;
-static volatile uint32_t rwh_cycles_max  = 0;
-static volatile uint32_t rwh_us_last     = 0;
-static volatile uint32_t rwh_us_max      = 0;
+static volatile uint32_t tw_cycles_last  = 0;
+static volatile uint32_t tw_cycles_max   = 0;
+static volatile uint32_t tw_us_last      = 0;
+static volatile uint32_t tw_us_max       = 0;
 
 // Ring_read_handler timing results
 static volatile uint32_t tr_cycles_last  = 0;
@@ -384,7 +384,14 @@ Error_Handler();
 
 		if (rx_event_flag == 1) {
 			//HAL_UART_Transmit(&huart2, "H", 1, 1);
+			uint32_t _tw_start = DWT_CYCCNT;
 			Ring_write_handler();
+			tw_cycles_last = DWT_CYCCNT - _tw_start;
+			tw_us_last     = tw_cycles_last / CPU_FREQ_MHZ;
+			if (tw_cycles_last > tw_cycles_max) {
+				tw_cycles_max = tw_cycles_last;
+				tw_us_max     = tw_us_last;
+			}
 		}
 
 		if (ring_read_flag == 1) {
@@ -651,7 +658,6 @@ static uint8_t Checksum(uint8_t *l_parser_buffer) {
 }
 
 static void Ring_write_handler(void) {
-	uint32_t _t_start = DWT_CYCCNT;
 	rwh_call_count++;
 	uint16_t dma_new_pos, len, len1, len2;
 	rx_event_flag = 0;
@@ -675,13 +681,6 @@ static void Ring_write_handler(void) {
 	}
 
 	ring_read_flag = 1;
-
-	rwh_cycles_last = DWT_CYCCNT - _t_start;
-	rwh_us_last     = rwh_cycles_last / CPU_FREQ_MHZ;
-	if (rwh_cycles_last > rwh_cycles_max) {
-		rwh_cycles_max = rwh_cycles_last;
-		rwh_us_max     = rwh_us_last;
-	}
 }
 
 static void Ring_read_handler(void) {
