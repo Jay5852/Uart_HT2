@@ -21,6 +21,7 @@
 #include "dma.h"
 #include "tim.h"
 #include "usart.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -82,6 +83,13 @@ static volatile uint32_t pd_cycles_last  = 0;
 static volatile uint32_t pd_cycles_max   = 0;
 static volatile uint32_t pd_us_last      = 0;
 static volatile uint32_t pd_us_max       = 0;
+
+// Ring_buffer_write timing results
+static volatile uint32_t rbw_call_count  = 0;
+static volatile uint32_t rbw_cycles_last = 0;
+static volatile uint32_t rbw_cycles_max  = 0;
+static volatile uint32_t rbw_us_last     = 0;
+static volatile uint32_t rbw_us_max      = 0;
 
 // SPO2 - 10 Byte Command Database
 
@@ -353,6 +361,7 @@ Error_Handler();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
@@ -437,7 +446,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 25;
+  RCC_OscInitStruct.PLL.PLLN = 50;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLQ = 5;
   RCC_OscInitStruct.PLL.PLLR = 2;
@@ -456,7 +465,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
@@ -598,16 +607,29 @@ static uint16_t Ring_buffer_count(ring_buffer_t *l_ring_buffer) {
 
 static void Ring_buffer_write(ring_buffer_t *l_ring_buffer, uint8_t *data,
 		uint16_t len) {
+	uint16_t head = l_ring_buffer->head;
+	uint16_t tail = l_ring_buffer->tail;
+	uint32_t _rbw_start = DWT_CYCCNT;
+	rbw_call_count++;
 	for (uint16_t i = 0; i < len; i++) {
-		uint16_t next_head = (l_ring_buffer->head + 1) % RING_BUFFER_SIZE;
+		uint16_t next_head = head + 1;
 
-		if (next_head == l_ring_buffer->tail) {
-			// rx_overflow_count++;
-			continue;
-		}
+		if (next_head >= RING_BUFFER_SIZE)
+			next_head = 0;
 
-		l_ring_buffer->buffer[l_ring_buffer->head] = data[i];
-		l_ring_buffer->head = next_head;
+		if (next_head == tail)
+			break;
+
+		l_ring_buffer->buffer[head] = data[i];
+		head = next_head;
+	}
+	l_ring_buffer->head = head;
+	
+	rbw_cycles_last = DWT_CYCCNT - _rbw_start;
+	rbw_us_last     = rbw_cycles_last / CPU_FREQ_MHZ;
+	if (rbw_cycles_last > rbw_cycles_max) {
+		rbw_cycles_max = rbw_cycles_last;
+		rbw_us_max     = rbw_us_last;
 	}
 }
 
